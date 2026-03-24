@@ -3417,7 +3417,11 @@ int
 main(int argc, char *argv[])
 {
 	char *startup_cmd = NULL;
-	int c;
+	
+    // Set envoriment variables
+    setenv("XDG_SESSION_DESKTOP", "dwl", 1);
+
+    int c;
 
 	while ((c = getopt(argc, argv, "s:hdv")) != -1) {
 		if (c == 's')
