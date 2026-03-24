@@ -3,13 +3,21 @@
                         ((hex >> 16) & 0xFF) / 255.0f, \
                         ((hex >> 8) & 0xFF) / 255.0f, \
                         (hex & 0xFF) / 255.0f }
+
 /* appearance */
+static const int enablegaps                = 1;  /* 1 means gaps are enabled */
+static const int smartgaps                 = 0;  /* 1 means no outer gap when there is only one window */
+static const int monoclegaps               = 0;  /* 1 means outer gaps in monocle layout */
+static const unsigned int gappih           = 2; /* horiz inner gap between windows */
+static const unsigned int gappiv           = 2; /* vert inner gap between windows */
+static const unsigned int gappoh           = 5; /* horiz outer gap between windows and screen edge */
+static const unsigned int gappov           = 5; /* vert outer gap between windows and screen edge */
 static const int sloppyfocus               = 1;  /* focus follows mouse */
 static const int bypass_surface_visibility = 0;  /* 1 means idle inhibitors will disable idle tracking even if it's surface isn't visible  */
-static const unsigned int borderpx         = 1;  /* border pixel of windows */
-static const float rootcolor[]             = COLOR(0x222222ff);
-static const float bordercolor[]           = COLOR(0x444444ff);
-static const float focuscolor[]            = COLOR(0x005577ff);
+static const unsigned int borderpx         = 2;  /* border pixel of windows */
+static const float rootcolor[]             = COLOR(0x11111bff);
+static const float bordercolor[]           = COLOR(0x11111bdf);
+static const float focuscolor[]            = COLOR(0xb4befeff);
 static const float urgentcolor[]           = COLOR(0xff0000ff);
 /* This conforms to the xdg-protocol. Set the alpha to zero to restore the old behavior */
 static const float fullscreen_bg[]         = {0.0f, 0.0f, 0.0f, 1.0f}; /* You can also use glsl colors */
@@ -19,6 +27,19 @@ static const float fullscreen_bg[]         = {0.0f, 0.0f, 0.0f, 1.0f}; /* You ca
 
 /* logging */
 static int log_level = WLR_ERROR;
+
+/* window resizing */
+/* resize_corner:
+ * 0: top-left
+ * 1: top-right
+ * 2: bottom-left
+ * 3: bottom-right
+ * 4: closest to the cursor
+ */
+static const int resize_corner = 4;
+static const int warp_cursor = 0;	/* 1: warp to corner, 0: don't warp */
+static const int lock_cursor = 0;	/* 1: lock cursor, 0: don't lock */
+
 
 static const Rule rules[] = {
 	/* app_id             title       tags mask     isfloating   monitor */
@@ -53,11 +74,12 @@ static const struct xkb_rule_names xkb_rules = {
 	/* example:
 	.options = "ctrl:nocaps",
 	*/
+    .layout = "tr",
 	.options = NULL,
 };
 
-static const int repeat_rate = 25;
-static const int repeat_delay = 600;
+static const int repeat_rate = 35;
+static const int repeat_delay = 300;
 
 /* Trackpad */
 static const int tap_to_click = 1;
@@ -103,7 +125,7 @@ LIBINPUT_CONFIG_TAP_MAP_LMR -- 1/2/3 finger tap maps to left/middle/right
 static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TAP_MAP_LRM;
 
 /* If you want to use the windows key for MODKEY, use WLR_MODIFIER_LOGO */
-#define MODKEY WLR_MODIFIER_ALT
+#define MODKEY WLR_MODIFIER_LOGO
 
 #define TAGKEYS(KEY,SKEY,TAG) \
 	{ MODKEY,                    KEY,            view,            {.ui = 1 << TAG} }, \
@@ -115,35 +137,73 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
 /* commands */
+static const char *browsercmd[] = { "sh", "-c", "~/Dotfiles/scripts/open-browser", NULL };
+static const char *closecmd[] = { "sh", "-c", "ewwii close actioncenter musiccenter calendar volumewidget", NULL };
+
+
 static const char *termcmd[] = { "foot", NULL };
-static const char *menucmd[] = { "wmenu-run", NULL };
+static const char *vimtcmd[] = { "foot", "-e", "nvim", "+term", NULL };
+static const char *rmpccmd[] = { "foot", "-e", "rmpc", NULL };
+static const char *yazicmd[] = { "foot", "-e", "yazi", NULL };
+
+static const char *appscmd[] = { "sh", "-c", "~/Dotfiles/bin/launchrofi --app_launcher", NULL };
+static const char *menucmd[] = { "sh", "-c", "~/Dotfiles/bin/launchrofi --sys_menu", NULL };
+static const char *clipboardcmd[] = { "sh", "-c", "walker -s clippy -p '󰅇 Clipboard'", NULL };
+static const char *ssmenucmd[] = { "sh", "-c", "hyprshot -m output -o ~/Pictures/Screenshots", NULL };
+
+
+static const char *pickercmd[] = { "sh", "-c", "~/Dotfiles/scripts/picker", NULL };
+static const char *screenshotcmd[] = { "sh", "-c", "hyprshot -m output -o ~/Pictures/Screenshots", NULL };
+
+static const char *raiseVol[] = { "pamixer", "-i", "10", NULL };
+static const char *lowVol[] = { "pamixer", "-d", "10", NULL };
+static const char *volMute[] = { "pamixer", "-t", NULL };
+static const char *playcmd[] = { "playerctl", "play-pause", NULL };
+static const char *stopcmd[] = { "playerctl", "stop", NULL };
+static const char *pausecmd[] = { "playerctl", "pause", NULL };
+static const char *nextcmd[] = { "playerctl", "next", NULL };
+static const char *prevcmd[] = { "playerctl", "previous", NULL };
 
 static const Key keys[] = {
 	/* Note that Shift changes certain key codes: 2 -> at, etc. */
 	/* modifier                  key                  function          argument */
-	{ MODKEY,                    XKB_KEY_p,           spawn,            {.v = menucmd} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Return,      spawn,            {.v = termcmd} },
-	{ MODKEY,                    XKB_KEY_j,           focusstack,       {.i = +1} },
+	
+    // === Applicaton Related Binds ===
+    
+    { MODKEY,                    XKB_KEY_b,           spawn,            {.v = browsercmd} },
+	{ MODKEY,                    XKB_KEY_s,           spawn,            {.v = appscmd} },
+	{ MODKEY,                    XKB_KEY_u,           spawn,            {.v = menucmd} },
+	{ MODKEY,                    XKB_KEY_x,           spawn,            {.v = clipboardcmd} },
+
+    // Terminal
+	{ MODKEY,                    XKB_KEY_t,           spawn,            {.v = termcmd} },
+	{ MODKEY,                    XKB_KEY_Return,      spawn,            {.v = vimtcmd} },
+	{ MODKEY,                    XKB_KEY_p,           spawn,            {.v = rmpccmd} },
+	{ MODKEY,                    XKB_KEY_e,           spawn,            {.v = yazicmd} },
+	{ MODKEY,                    XKB_KEY_XF86Explorer,           spawn,            {.v = yazicmd} },
+
+    // Utilities
+	{ MODKEY,                    XKB_KEY_o,           spawn,            {.v = pickercmd} },
+	{ MODKEY,                    XKB_KEY_Escape,      spawn,            {.v = closecmd} },
+
+    // ====================
+    
+    // === Window Management Binds ===
+
+    { MODKEY,                    XKB_KEY_j,           focusstack,       {.i = +1} },
 	{ MODKEY,                    XKB_KEY_k,           focusstack,       {.i = -1} },
 	{ MODKEY,                    XKB_KEY_i,           incnmaster,       {.i = +1} },
 	{ MODKEY,                    XKB_KEY_d,           incnmaster,       {.i = -1} },
 	{ MODKEY,                    XKB_KEY_h,           setmfact,         {.f = -0.05f} },
 	{ MODKEY,                    XKB_KEY_l,           setmfact,         {.f = +0.05f} },
-	{ MODKEY,                    XKB_KEY_Return,      zoom,             {0} },
-	{ MODKEY,                    XKB_KEY_Tab,         view,             {0} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_c,           killclient,       {0} },
-	{ MODKEY,                    XKB_KEY_t,           setlayout,        {.v = &layouts[0]} },
-	{ MODKEY,                    XKB_KEY_f,           setlayout,        {.v = &layouts[1]} },
-	{ MODKEY,                    XKB_KEY_m,           setlayout,        {.v = &layouts[2]} },
-	{ MODKEY,                    XKB_KEY_space,       setlayout,        {0} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_space,       togglefloating,   {0} },
-	{ MODKEY,                    XKB_KEY_e,           togglefullscreen, {0} },
-	{ MODKEY,                    XKB_KEY_0,           view,             {.ui = ~0} },
+    { MODKEY,                    XKB_KEY_c,           killclient,       {0} },	
+    { MODKEY,                    XKB_KEY_v,           togglefloating,   {0} },
+	{ MODKEY,                    XKB_KEY_f,           togglefullscreen, {0} }, 
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_parenright,  tag,              {.ui = ~0} },
-	{ MODKEY,                    XKB_KEY_comma,       focusmon,         {.i = WLR_DIRECTION_LEFT} },
-	{ MODKEY,                    XKB_KEY_period,      focusmon,         {.i = WLR_DIRECTION_RIGHT} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_less,        tagmon,           {.i = WLR_DIRECTION_LEFT} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_greater,     tagmon,           {.i = WLR_DIRECTION_RIGHT} },
+	{ MODKEY,                    XKB_KEY_Left,       focusmon,         {.i = WLR_DIRECTION_LEFT} },
+	{ MODKEY,                    XKB_KEY_Right,      focusmon,         {.i = WLR_DIRECTION_RIGHT} },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Left,        tagmon,           {.i = WLR_DIRECTION_LEFT} },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Right,     tagmon,           {.i = WLR_DIRECTION_RIGHT} },
 	TAGKEYS(          XKB_KEY_1, XKB_KEY_exclam,                        0),
 	TAGKEYS(          XKB_KEY_2, XKB_KEY_at,                            1),
 	TAGKEYS(          XKB_KEY_3, XKB_KEY_numbersign,                    2),
@@ -153,7 +213,32 @@ static const Key keys[] = {
 	TAGKEYS(          XKB_KEY_7, XKB_KEY_ampersand,                     6),
 	TAGKEYS(          XKB_KEY_8, XKB_KEY_asterisk,                      7),
 	TAGKEYS(          XKB_KEY_9, XKB_KEY_parenleft,                     8),
+    
+    // ====================
+
+    //	{ MODKEY|WLR_MODIFIER_LOGO|WLR_MODIFIER_SHIFT,    XKB_KEY_parenright,defaultgaps,    {0} },
+//	{ MODKEY,                    XKB_KEY_Return,      zoom,             {0} },
+//	{ MODKEY,                    XKB_KEY_Tab,         view,             {0} },
+//	{ MODKEY,                    XKB_KEY_t,           setlayout,        {.v = &layouts[0]} },
+//	{ MODKEY,                    XKB_KEY_f,           setlayout,        {.v = &layouts[1]} },
+//	{ MODKEY,                    XKB_KEY_m,           setlayout,        {.v = &layouts[2]} },
+//	{ MODKEY,                    XKB_KEY_space,       setlayout,        {0} },
+//	{ MODKEY,                    XKB_KEY_0,           view,             {.ui = ~0} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_q,           quit,             {0} },
+
+    // === Volume and Media Control === 
+	
+    { 0,                    XKB_KEY_XF86AudioRaiseVolume,           spawn,            {.v = raiseVol} },
+	{ 0,                    XKB_KEY_XF86AudioLowerVolume,           spawn,            {.v = lowVol} },
+	{ 0,                    XKB_KEY_XF86AudioMicMute,               spawn,            {.v = volMute} },
+	{ 0,                    XKB_KEY_XF86AudioMute,                  spawn,            {.v = volMute} },
+	{ 0,                    XKB_KEY_XF86AudioPlay,                  spawn,            {.v = playcmd} },
+	{ 0,                    XKB_KEY_XF86AudioStop,                  spawn,            {.v = stopcmd} },
+	{ 0,                    XKB_KEY_XF86AudioPause,                 spawn,            {.v = pausecmd} },
+	{ 0,                    XKB_KEY_XF86AudioNext,                  spawn,            {.v = nextcmd} },
+	{ 0,                    XKB_KEY_XF86AudioPrev,                  spawn,            {.v = prevcmd} },
+    
+    // ================================ 
 
 	/* Ctrl-Alt-Backspace and Ctrl-Alt-Fx used to be handled by X server */
 	{ WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_Terminate_Server, quit, {0} },
