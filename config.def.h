@@ -44,6 +44,7 @@ static const int lock_cursor = 0;	/* 1: lock cursor, 0: don't lock */
 static const Rule rules[] = {
 	/* app_id             title       tags mask     isfloating   monitor */
 	{ "Gimp_EXAMPLE",     NULL,       0,            1,           -1 }, /* Start on currently visible tags floating, not tiled */
+	{ "binarydotsTUI",    NULL,       0,            1,           -1 }, /* Start on currently visible tags floating, not tiled */
 	{ "firefox_EXAMPLE",  NULL,       1 << 8,       0,           -1 }, /* Start on ONLY tag "9" */
     /* default/example rule: can be changed but cannot be eliminated; at least one rule must exist */
 };
@@ -180,7 +181,7 @@ static const Key keys[] = {
 	{ MODKEY,                    XKB_KEY_Return,      spawn,            {.v = vimtcmd} },
 	{ MODKEY,                    XKB_KEY_p,           spawn,            {.v = rmpccmd} },
 	{ MODKEY,                    XKB_KEY_e,           spawn,            {.v = yazicmd} },
-	{ MODKEY,                    XKB_KEY_XF86Explorer,           spawn,            {.v = yazicmd} },
+	{ 0,                    XKB_KEY_XF86Explorer,           spawn,            {.v = yazicmd} },
 
     // Utilities
 	{ MODKEY,                    XKB_KEY_o,           spawn,            {.v = pickercmd} },
