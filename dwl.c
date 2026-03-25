@@ -3420,6 +3420,10 @@ main(int argc, char *argv[])
 	
     // Set envoriment variables
     setenv("XDG_SESSION_DESKTOP", "dwl", 1);
+    setenv("XDG_SESSION_TYPE", "wayland", 1);
+    setenv("QT_QPA_PLATFORMTHEME", "qt6ct", 1);
+    setenv("QT_STYLE_OVERRIDE", "qt6ct", 1);
+    setenv("QT_QPA_PLATFORM", "wayland", 1);
 
     int c;
 
