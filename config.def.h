@@ -152,7 +152,7 @@ static const char *menucmd[] = { "sh", "-c", "~/Dotfiles/bin/launchrofi --sys_me
 static const char *clipboardcmd[] = { "sh", "-c", "walker -s clippy -p '󰅇 Clipboard'", NULL };
 static const char *ssmenucmd[] = { "sh", "-c", "hyprshot -m output -o ~/Pictures/Screenshots", NULL };
 
-
+static const char *reloadcmd[] = { "sh", "-c", "pkill riftbar ; ewwii r; makoctl reload; riftbar& disown", NULL };
 static const char *pickercmd[] = { "sh", "-c", "~/Dotfiles/scripts/picker", NULL };
 static const char *screenshotcmd[] = { "sh", "-c", "hyprshot -m output -o ~/Pictures/Screenshots", NULL };
 
@@ -181,10 +181,13 @@ static const Key keys[] = {
 	{ MODKEY,                    XKB_KEY_Return,      spawn,            {.v = vimtcmd} },
 	{ MODKEY,                    XKB_KEY_p,           spawn,            {.v = rmpccmd} },
 	{ MODKEY,                    XKB_KEY_e,           spawn,            {.v = yazicmd} },
-	{ 0,                    XKB_KEY_XF86Explorer,           spawn,            {.v = yazicmd} },
+	{ 0,                         XKB_KEY_XF86Explorer,spawn,            {.v = yazicmd} },
 
     // Utilities
+	{ MODKEY,                    XKB_KEY_w,           spawn,            {.v = reloadcmd} },
 	{ MODKEY,                    XKB_KEY_o,           spawn,            {.v = pickercmd} },
+	{ 0,                         XKB_KEY_Print,       spawn,            {.v = screenshotcmd} },
+	{ MODKEY,                    XKB_KEY_Print,       spawn,            {.v = ssmenucmd} },
 	{ MODKEY,                    XKB_KEY_Escape,      spawn,            {.v = closecmd} },
 
     // ====================
